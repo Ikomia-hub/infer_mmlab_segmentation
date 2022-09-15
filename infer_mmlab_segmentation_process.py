@@ -16,13 +16,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ikomia import core, dataprocess
+from ikomia import core, dataprocess, utils
 import copy
 # Your imports below
 from mmseg.apis import inference_segmentor, init_segmentor
 from mmcv.runner import load_checkpoint
 from torch.cuda import is_available
-from distutils.util import strtobool
 from infer_mmlab_segmentation.utils import model_zoo
 import os
 import numpy as np
@@ -56,7 +55,7 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         self.model_name = param_map["model_name"]
         self.model_config = param_map["model_config"]
         self.model_url = param_map["model_url"]
-        self.cuda = strtobool(param_map["cuda"])
+        self.cuda = utils.strtobool(param_map["cuda"])
         self.use_custom_model = strtobool(param_map["use_custom_model"])
         self.custom_cfg = param_map["custom_cfg"]
         self.custom_weights = param_map["custom_weights"]
