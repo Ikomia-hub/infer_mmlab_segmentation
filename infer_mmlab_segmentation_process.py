@@ -154,36 +154,6 @@ class InferMmlabSegmentation(dataprocess.C2dImageTask):
         # Call endTaskRun to finalize process
         self.endTaskRun()
 
-    def draw_legend(self, result):
-        ids_in_result = list(np.unique(result))
-        colors_in_result = [self.colors[i] for i in ids_in_result]
-        classes_in_result = [self.classes[i] for i in ids_in_result]
-        img_h = 1000
-        img_w = 1000
-        max_height = 100
-        rectangle_height = min(max_height, img_h // len(colors_in_result))
-        rectangle_width = img_w // 3
-        offset_x = 10
-        offset_y = 5
-        interline = 5
-        legend = np.full((img_h, img_w, 3), dtype="uint8", fill_value=255)
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        fontscale = 1
-        thickness = 2
-
-        for i, c in enumerate(colors_in_result):
-            legend = cv2.rectangle(legend,
-                                   (offset_x, i * rectangle_height + offset_y + interline),
-                                   (offset_x + rectangle_width, (i + 1) * rectangle_height + offset_y - interline),
-                                   c, -1)
-            legend = cv2.putText(legend,
-                                 classes_in_result[i],
-                                 (3 * offset_x + rectangle_width,
-                                  (i + 1) * rectangle_height + offset_y - interline - rectangle_height // 3),
-                                 font, fontscale, color=[0, 0, 0], thickness=thickness)
-
-        return legend
-
 
 # --------------------
 # - Factory class to build process object
