@@ -85,12 +85,7 @@ class InferMmlabSegmentation(dataprocess.C2dImageTask):
     def __init__(self, name, param):
         dataprocess.C2dImageTask.__init__(self, name)
         # Add input/output of the process here
-        # Example :  self.addInput(dataprocess.CImageIO())
-        #           self.addOutput(dataprocess.CImageIO())
-        self.setOutputDataType(core.IODataType.IMAGE_LABEL, 0)
-        self.addOutput(dataprocess.CImageIO())
-        self.addOutput(dataprocess.CImageIO())
-        self.addOutput(dataprocess.CNumericIO())
+        self.addOutput(dataprocess.CSemanticSegIO())
         self.model = None
         self.colors = None
         self.classes = None
@@ -115,9 +110,7 @@ class InferMmlabSegmentation(dataprocess.C2dImageTask):
         input = self.getInput(0)
 
         # Get output :
-        output = self.getOutput(0)
-        legend = self.getOutput(2)
-        class_names = self.getOutput(3)
+        sem_seg_out = self.getOutput(1)
         # Get parameters :
         param = self.getParam()
         if self.model is None or param.update:
@@ -140,21 +133,20 @@ class InferMmlabSegmentation(dataprocess.C2dImageTask):
             if self.colors is None:
                 self.colors = np.random.randint(0, 255, (len(self.classes), 3))
                 self.colors[0] = [0, 0, 0]  # background
-            # add alpha channel
-            for color in self.colors:
-                color += [255]
+            self.colors = [[int(c[0]), int(c[1]), int(c[2])] for c in self.colors]
+
             param.update = False
         # Get image from input/output (numpy array):
         srcImage = input.getImage()
 
+        self.forwardInputImage(0, 0)
+
         if srcImage is not None:
             result = inference_segmentor(self.model, srcImage)[0]
-            output.setImage(result.astype("uint8"))
-            legend.setImage(self.draw_legend(result))
-            class_names.addValueList([float(i) for i in range(len(self.classes))], "Id", list(self.classes))
+            sem_seg_out.setMask(result.astype("uint8"))
+            sem_seg_out.setClassNames(list(self.classes), self.colors)
 
-        self.setOutputColorMap(1, 0, self.colors)
-        self.forwardInputImage(0, 1)
+            self.setOutputColorMap(0, 1, self.colors)
 
         # Step progress bar:
         self.emitStepProgress()
