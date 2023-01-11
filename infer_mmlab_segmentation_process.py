@@ -17,15 +17,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from ikomia import core, dataprocess, utils
+from ikomia.utils import strtobool
 import copy
 # Your imports below
-from mmseg.apis import inference_segmentor, init_segmentor
-from mmcv.runner import load_checkpoint
+from mmseg.apis import init_model, inference_model
+from mmseg.utils import register_all_modules
 from torch.cuda import is_available
-from infer_mmlab_segmentation.utils import model_zoo
 import os
 import numpy as np
-import cv2
 
 
 # --------------------
@@ -39,9 +38,9 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         # Place default value initialization here
         # Example : self.windowSize = 25
         self.model_name = "segformer"
-        self.model_config = "segformer_mit-b3_512x512_160k_ade20k"
-        self.model_url = "https://download.openmmlab.com/mmsegmentation/v0.5/segformer/segformer_mit" \
-                         "-b3_512x512_160k_ade20k/segformer_mit-b3_512x512_160k_ade20k_20210726_081410-962b98d2.pth "
+        self.model_config = "segformer_mit-b0_8xb2-160k_ade20k-512x512.py"
+        self.model_url = "https://download.openmmlab.com/mmsegmentation/v0.5/segformer/segformer_mit-b0_512" \
+                         "x512_160k_ade20k/segformer_mit-b0_512x512_160k_ade20k_20210726_101530-8ffa8fda.pth"
         self.update = False
         self.cuda = is_available()
         self.use_custom_model = False
@@ -78,13 +77,14 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
 
 # --------------------
 # - Class which implements the process
-# - Inherits PyCore.CWorkflowTask or derived from Ikomia API
+# - Inhesegformer_mit-b0_8xb2-160k_ade20k-512x512.pyrits PyCore.CWorkflowTask or derived from Ikomia API
 # --------------------
 class InferMmlabSegmentation(dataprocess.C2dImageTask):
 
     def __init__(self, name, param):
         dataprocess.C2dImageTask.__init__(self, name)
         # Add input/output of the process here
+        register_all_modules()
         self.addOutput(dataprocess.CSemanticSegIO())
         self.model = None
         self.colors = None
@@ -122,17 +122,11 @@ class InferMmlabSegmentation(dataprocess.C2dImageTask):
                                         param.model_config+".py")
                 ckpt_file = param.model_url
 
-            self.model = init_segmentor(cfg_file, ckpt_file, device='cuda:0' if param.cuda else 'cpu')
-            checkpoint = load_checkpoint(self.model, ckpt_file, map_location='cpu')
-            if 'CLASSES' in checkpoint.get('meta', {}):
-                self.model.CLASSES = checkpoint['meta']['CLASSES']
-            if 'PALETTE' in checkpoint.get('meta', {}):
-                self.model.PALETTE = checkpoint['meta']['PALETTE']
-            self.classes = self.model.CLASSES
-            self.colors = self.model.PALETTE
-            if self.colors is None:
-                self.colors = np.random.randint(0, 255, (len(self.classes), 3))
-                self.colors[0] = [0, 0, 0]  # background
+            self.model = init_model(cfg_file, ckpt_file, device='cuda:0' if param.cuda else 'cpu')
+            # trick to avoid KeyError "seg_map_path" when loading annotations
+            self.model.cfg.test_pipeline = [t for t in self.model.cfg.test_pipeline if "reduce_zero_label" not in t]
+            self.classes = self.model.dataset_meta["classes"]
+            self.colors = np.random.randint(0, 255, (len(self.classes), 3))
             self.colors = [[int(c[0]), int(c[1]), int(c[2])] for c in self.colors]
 
             param.update = False
@@ -142,8 +136,9 @@ class InferMmlabSegmentation(dataprocess.C2dImageTask):
         self.forwardInputImage(0, 0)
 
         if srcImage is not None:
-            result = inference_segmentor(self.model, srcImage)[0]
-            sem_seg_out.setMask(result.astype("uint8"))
+            result = inference_model(self.model, srcImage).to_dict()
+            pred_sem_seg = result["pred_sem_seg"]["data"].detach().cpu().squeeze().numpy()
+            sem_seg_out.setMask(pred_sem_seg.astype("uint8"))
             sem_seg_out.setClassNames(list(self.classes), self.colors)
 
             self.setOutputColorMap(0, 1, self.colors)
