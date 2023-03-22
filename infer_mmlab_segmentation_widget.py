@@ -113,7 +113,7 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
         layout_ptr = qtconversion.PyQtToQt(self.gridLayout)
 
         # Set widget layout
-        self.setLayout(layout_ptr)
+        self.set_layout(layout_ptr)
 
     def on_model_changed(self, s):
         self.combo_config.clear()
@@ -134,7 +134,7 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
         self.browse_custom_cfg.setEnabled(self.check_use_custom_model.isChecked())
         self.browse_custom_weights.setEnabled(self.check_use_custom_model.isChecked())
 
-    def onApply(self):
+    def on_apply(self):
         # Apply button clicked slot
 
         # Get parameters from widget
@@ -148,7 +148,7 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
         self.parameters.use_custom_model = self.check_use_custom_model.isChecked()
         self.parameters.update = True
         # Send signal to launch the process
-        self.emitApply(self.parameters)
+        self.emit_apply(self.parameters)
 
 
 # --------------------

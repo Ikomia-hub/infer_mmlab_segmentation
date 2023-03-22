@@ -47,7 +47,7 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         self.custom_cfg = ""
         self.custom_weights = ""
 
-    def setParamMap(self, param_map):
+    def set_values(self, param_map):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
         # Example : self.windowSize = int(param_map["windowSize"])
@@ -59,10 +59,10 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         self.custom_cfg = param_map["custom_cfg"]
         self.custom_weights = param_map["custom_weights"]
 
-    def getParamMap(self):
+    def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
-        param_map = core.ParamMap()
+        param_map = {}
         # Example : paramMap["windowSize"] = str(self.windowSize)
 
         param_map["model_name"] = self.model_name
@@ -79,40 +79,36 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
 # - Class which implements the process
 # - Inhesegformer_mit-b0_8xb2-160k_ade20k-512x512.pyrits PyCore.CWorkflowTask or derived from Ikomia API
 # --------------------
-class InferMmlabSegmentation(dataprocess.C2dImageTask):
+class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
 
     def __init__(self, name, param):
-        dataprocess.C2dImageTask.__init__(self, name)
+        dataprocess.CSemanticSegmentationTask.__init__(self, name)
         # Add input/output of the process here
         register_all_modules()
-        self.addOutput(dataprocess.CSemanticSegIO())
         self.model = None
-        self.colors = None
         self.classes = None
         # Create parameters class
         if param is None:
-            self.setParam(InferMmlabSegmentationParam())
+            self.set_param_object(InferMmlabSegmentationParam())
         else:
-            self.setParam(copy.deepcopy(param))
+            self.set_param_object(copy.deepcopy(param))
 
-    def getProgressSteps(self, eltCount=1):
+    def get_progress_steps(self, eltCount=1):
         # Function returning the number of progress steps for this process
         # This is handled by the main progress bar of Ikomia application
         return 1
 
     def run(self):
         # Core function of your process
-        # Call beginTaskRun for initialization
-        self.beginTaskRun()
+        # Call begin_task_run for initialization
+        self.begin_task_run()
 
         # Examples :
         # Get input :
-        input = self.getInput(0)
+        input = self.get_input(0)
 
-        # Get output :
-        sem_seg_out = self.getOutput(1)
         # Get parameters :
-        param = self.getParam()
+        param = self.get_param_object()
         if self.model is None or param.update:
             if param.use_custom_model:
                 cfg_file = param.custom_cfg
@@ -126,28 +122,22 @@ class InferMmlabSegmentation(dataprocess.C2dImageTask):
             # trick to avoid KeyError "seg_map_path" when loading annotations
             self.model.cfg.test_pipeline = [t for t in self.model.cfg.test_pipeline if "reduce_zero_label" not in t]
             self.classes = self.model.dataset_meta["classes"]
-            self.colors = np.random.randint(0, 255, (len(self.classes), 3))
-            self.colors = [[int(c[0]), int(c[1]), int(c[2])] for c in self.colors]
+            self.set_names(list(self.classes))
 
             param.update = False
         # Get image from input/output (numpy array):
-        srcImage = input.getImage()
-
-        self.forwardInputImage(0, 0)
+        srcImage = input.get_image()
 
         if srcImage is not None:
             result = inference_model(self.model, srcImage).to_dict()
             pred_sem_seg = result["pred_sem_seg"]["data"].detach().cpu().squeeze().numpy()
-            sem_seg_out.setMask(pred_sem_seg.astype("uint8"))
-            sem_seg_out.setClassNames(list(self.classes), self.colors)
-
-            self.setOutputColorMap(0, 1, self.colors)
+            self.set_mask(pred_sem_seg.astype("uint8"))
 
         # Step progress bar:
-        self.emitStepProgress()
+        self.emit_step_progress()
 
-        # Call endTaskRun to finalize process
-        self.endTaskRun()
+        # Call end_task_run to finalize process
+        self.end_task_run()
 
 
 # --------------------
@@ -160,20 +150,20 @@ class InferMmlabSegmentationFactory(dataprocess.CTaskFactory):
         dataprocess.CTaskFactory.__init__(self)
         # Set process information as string here
         self.info.name = "infer_mmlab_segmentation"
-        self.info.shortDescription = "Inference for MMLAB segmentation models"
+        self.info.short_description = "Inference for MMLAB segmentation models"
         self.info.description = "Inference for MMLAB segmentation models"
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
-        self.info.iconPath = "icons/mmlab.png"
-        self.info.version = "1.0.0"
-        # self.info.iconPath = "your path to a specific icon"
+        self.info.icon_path = "icons/mmlab.png"
+        self.info.version = "1.1.0"
+        # self.info.icon_path = "your path to a specific icon"
         self.info.authors = "MMSegmentation Contributors"
         self.info.article = "{MMSegmentation}: OpenMMLab Semantic Segmentation Toolbox and Benchmark"
         self.info.journal = "publication journal"
         self.info.year = 2021
         self.info.license = "Apache 2.0"
         # URL of documentation
-        self.info.documentationLink = "https://mmsegmentation.readthedocs.io/en/latest/"
+        self.info.documentation_link = "https://mmsegmentation.readthedocs.io/en/latest/"
         # Code source repository
         self.info.repository = "https://github.com/open-mmlab/mmsegmentation"
         # Keywords used for search
