@@ -62,16 +62,15 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
     def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
-        param_map = {}
-        # Example : paramMap["windowSize"] = str(self.windowSize)
-
-        param_map["model_name"] = self.model_name
-        param_map["model_config"] = self.model_config
-        param_map["model_url"] = self.model_url
-        param_map["cuda"] = str(self.cuda)
-        param_map["use_custom_model"] = str(self.use_custom_model)
-        param_map["custom_cfg"] = self.custom_cfg
-        param_map["custom_weights"] = self.custom_weights
+        param_map = {
+                "model_name": self.model_name,
+                "model_config": self.model_config,
+                "model_url": self.model_url,
+                "cuda": str(self.cuda),
+                "use_custom_model": str(self.use_custom_model),
+                "custom_cfg": self.custom_cfg,
+                "custom_weights": self.custom_weights,
+                }
         return param_map
 
 
