@@ -102,7 +102,7 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
                                                               self.parameters.custom_cfg)
 
         self.browse_custom_weights = pyqtutils.append_browse_file(self.gridLayout, "Weight file (.pth)",
-                                                                  self.parameters.custom_weights)
+                                                                  self.parameters.model_path)
 
         self.browse_custom_cfg.setEnabled(self.check_use_custom_model.isChecked())
         self.browse_custom_weights.setEnabled(self.check_use_custom_model.isChecked())
@@ -143,7 +143,7 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
         self.parameters.model_config = self.combo_config.currentText()
         self.parameters.model_name = self.combo_model.currentText()
         self.parameters.model_url = self.available_cfg_ckpt[self.parameters.model_config]['ckpt']
-        self.parameters.custom_weights = self.browse_custom_weights.path
+        self.parameters.model_path = self.browse_custom_weights.path
         self.parameters.custom_cfg = self.browse_custom_cfg.path
         self.parameters.use_custom_model = self.check_use_custom_model.isChecked()
         self.parameters.update = True
