@@ -121,14 +121,15 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
             return
         model = self.combo_model.currentText()
         yaml_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", model, "metafile.yaml")
-        with open(yaml_file, "r") as f:
-            models_list = yaml.load(f, Loader=yaml.FullLoader)['Models']
+        if os.path.isfile(yaml_file):
+            with open(yaml_file, "r") as f:
+                models_list = yaml.load(f, Loader=yaml.FullLoader)['Models']
 
-        self.available_cfg_ckpt = {model_dict["Name"]: {'cfg': model_dict["Config"], 'ckpt': model_dict["Weights"]} for
-                                   model_dict in models_list}
-        for experiment_name in self.available_cfg_ckpt.keys():
-            self.combo_config.addItem(experiment_name)
-        self.combo_config.setCurrentText(list(self.available_cfg_ckpt.keys())[0])
+            self.available_cfg_ckpt = {model_dict["Name"]: {'cfg': model_dict["Config"], 'ckpt': model_dict["Weights"]} for
+                                       model_dict in models_list}
+            for experiment_name in self.available_cfg_ckpt.keys():
+                self.combo_config.addItem(experiment_name)
+            self.combo_config.setCurrentText(list(self.available_cfg_ckpt.keys())[0])
 
     def on_use_custom_model(self, b):
         self.browse_custom_cfg.setEnabled(self.check_use_custom_model.isChecked())
