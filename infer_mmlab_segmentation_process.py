@@ -37,8 +37,8 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
         # Example : self.windowSize = 25
-        self.model_name_or_path = ""
-        self.config = ""
+        self.model_weight_file = ""
+        self.config_file = ""
         self.model_name = "segformer"
         self.model_config = "segformer_mit-b0_8xb2-160k_ade20k-512x512.py"
         self.model_url = "https://download.openmmlab.com/mmsegmentation/v0.5/segformer/segformer_mit-b0_512" \
@@ -52,8 +52,8 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
     def set_values(self, param_map):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
-        self.model_name_or_path = param_map["model_name_or_path"]
-        self.config = param_map["config"]
+        self.model_weight_file = param_map["model_weight_file"]
+        self.config_file = param_map["config_file"]
         self.model_name = param_map["model_name"]
         self.model_config = param_map["model_config"]
         self.model_url = param_map["model_url"]
@@ -66,8 +66,8 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
         param_map = {
-                "model_name_or_path": self.model_name_or_path,
-                "config": self.config,
+                "model_weight_file": self.model_weight_file,
+                "config_file": self.config_file,
                 "model_name": self.model_name,
                 "model_config": self.model_config,
                 "model_url": self.model_url,
@@ -116,16 +116,16 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
         if self.model is None or param.update:
             if param.model_path != "":
                 param.use_custom_model = True
-                if os.path.isfile(param.config):
-                    param.custom_cfg = param.config
-            if param.model_name_or_path != "":
-                if os.path.isfile(param.model_name_or_path):
+                if os.path.isfile(param.config_file):
+                    param.custom_cfg = param.config_file
+            if param.model_weight_file != "":
+                if os.path.isfile(param.model_weight_file):
                     param.use_custom_model = True
-                    param.model_path = param.model_name_or_path
-                    if os.path.isfile(param.config):
-                        param.custom_cfg = param.config
+                    param.model_path = param.model_weight_file
+                    if os.path.isfile(param.config_file):
+                        param.custom_cfg = param.config_file
                 else:
-                    param.model_name = param.model_name_or_path
+                    param.model_name = param.model_weight_file
 
             if param.use_custom_model:
                 cfg_file = param.custom_cfg
