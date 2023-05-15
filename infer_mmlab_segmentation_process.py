@@ -172,7 +172,7 @@ class InferMmlabSegmentationFactory(dataprocess.CTaskFactory):
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
         self.info.icon_path = "icons/mmlab.png"
-        self.info.version = "1.1.0"
+        self.info.version = "1.2.0"
         # self.info.icon_path = "your path to a specific icon"
         self.info.authors = "MMSegmentation Contributors"
         self.info.article = "{MMSegmentation}: OpenMMLab Semantic Segmentation Toolbox and Benchmark"
