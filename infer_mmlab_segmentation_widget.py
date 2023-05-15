@@ -120,7 +120,7 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
         if s not in self.available_models:
             return
         model = self.combo_model.currentText()
-        yaml_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", model, model + ".yml")
+        yaml_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", model, "metafile.yaml")
         with open(yaml_file, "r") as f:
             models_list = yaml.load(f, Loader=yaml.FullLoader)['Models']
 
