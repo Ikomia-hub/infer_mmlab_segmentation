@@ -132,7 +132,7 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
                 ckpt_file = param.model_path
             else:
                 cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", param.model_name,
-                                        param.model_config+".py")
+                                        param.model_config)
                 ckpt_file = param.model_url
 
             self.model = init_model(cfg_file, ckpt_file, device='cuda:0' if param.cuda else 'cpu')
