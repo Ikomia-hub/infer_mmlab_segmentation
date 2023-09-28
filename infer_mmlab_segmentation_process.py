@@ -168,7 +168,6 @@ class InferMmlabSegmentationFactory(dataprocess.CTaskFactory):
         # Set process information as string here
         self.info.name = "infer_mmlab_segmentation"
         self.info.short_description = "Inference for MMLAB segmentation models"
-        self.info.description = "Inference for MMLAB segmentation models"
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
         self.info.icon_path = "icons/mmlab.png"
@@ -182,7 +181,8 @@ class InferMmlabSegmentationFactory(dataprocess.CTaskFactory):
         # URL of documentation
         self.info.documentation_link = "https://mmsegmentation.readthedocs.io/en/latest/"
         # Code source repository
-        self.info.repository = "https://github.com/open-mmlab/mmsegmentation"
+        self.info.repository = "https://github.com/Ikomia-hub/infer_mmlab_segmentation"
+        self.info.original_repository = "https://github.com/open-mmlab/mmsegmentation"
         # Keywords used for search
         self.info.keywords = "mmlab, train, segmentation"
 
