@@ -185,6 +185,8 @@ class InferMmlabSegmentationFactory(dataprocess.CTaskFactory):
         self.info.original_repository = "https://github.com/open-mmlab/mmsegmentation"
         # Keywords used for search
         self.info.keywords = "mmlab, train, segmentation"
+        self.info.algo_type = core.AlgoType.INFER
+        self.info.algo_tasks = "INSTANCE_SEGMENTATION,SEMANTIC_SEGMENTATION,PANOPTIC_SEGMENTATION"
 
     def create(self, param=None):
         # Create process object
