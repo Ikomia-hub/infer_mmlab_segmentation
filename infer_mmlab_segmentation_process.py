@@ -23,8 +23,10 @@ import copy
 from mmseg.apis import init_model, inference_model
 from mmseg.utils import register_all_modules
 from torch.cuda import is_available
+import torch
 import os
 import numpy as np
+import yaml
 
 
 # --------------------
@@ -39,10 +41,8 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         # Example : self.windowSize = 25
         self.model_weight_file = ""
         self.config_file = ""
-        self.model_name = "segformer"
-        self.model_config = "segformer_mit-b0_8xb2-160k_ade20k-512x512.py"
-        self.model_url = "https://download.openmmlab.com/mmsegmentation/v0.5/segformer/segformer_mit-b0_512" \
-                         "x512_160k_ade20k/segformer_mit-b0_512x512_160k_ade20k_20210726_101530-8ffa8fda.pth"
+        self.model_name = "maskformer"
+        self.model_config = "maskformer_r50-d32_8xb2-160k_ade20k-512x512"
         self.update = False
         self.cuda = is_available()
         self.use_custom_model = False
@@ -56,7 +56,6 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         self.config_file = param_map["config_file"]
         self.model_name = param_map["model_name"]
         self.model_config = param_map["model_config"]
-        self.model_url = param_map["model_url"]
         self.cuda = utils.strtobool(param_map["cuda"])
         self.use_custom_model = strtobool(param_map["use_custom_model"])
         self.custom_cfg = param_map["custom_cfg"]
@@ -70,7 +69,6 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
                 "config_file": self.config_file,
                 "model_name": self.model_name,
                 "model_config": self.model_config,
-                "model_url": self.model_url,
                 "cuda": str(self.cuda),
                 "use_custom_model": str(self.use_custom_model),
                 "custom_cfg": self.custom_cfg,
@@ -102,6 +100,59 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
         # This is handled by the main progress bar of Ikomia application
         return 1
 
+
+    @staticmethod
+    def get_absolute_paths(param):
+        if param.model_weight_file == "":
+            yaml_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", param.model_name,
+                                     "metafile.yaml")
+
+            if param.model_config.endswith('.py'):
+                param.model_config = param.model_config[:-3]
+            if os.path.isfile(yaml_file):
+                with open(yaml_file, "r") as f:
+                    models_list = yaml.load(f, Loader=yaml.FullLoader)['Models']
+
+                available_cfg_ckpt = {model_dict["Name"]: {'cfg': model_dict["Config"],
+                                                           'ckpt': model_dict["Weights"]}
+                                      for model_dict in models_list}
+                if param.model_config in available_cfg_ckpt:
+                    cfg_file = available_cfg_ckpt[param.model_config]['cfg']
+                    ckpt_file = available_cfg_ckpt[param.model_config]['ckpt']
+                    cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), cfg_file)
+                    return cfg_file, ckpt_file
+                else:
+                    raise Exception(
+                        f"{param.model_config} does not exist for {param.model_name}. Available configs for are {', '.join(list(available_cfg_ckpt.keys()))}")
+            else:
+                raise Exception(f"Model name {param.model_name} does not exist.")
+        else:
+            if os.path.isfile(param.model_config):
+                cfg_file = param.model_config
+            else:
+                cfg_file = param.config_file
+            ckpt_file = param.model_weight_file
+            return cfg_file, ckpt_file
+
+    @staticmethod
+    def get_model_zoo():
+        configs_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
+        available_pairs = []
+        for model_name in os.listdir(configs_folder):
+            if model_name.startswith('_'):
+                continue
+            yaml_file = os.path.join(configs_folder, model_name, "metafile.yaml")
+            if os.path.isfile(yaml_file):
+                with open(yaml_file, "r") as f:
+                    models_list = yaml.load(f, Loader=yaml.FullLoader)
+                    if 'Models' in models_list:
+                        models_list = models_list['Models']
+                    if not isinstance(models_list, list):
+                        continue
+                for model_dict in models_list:
+                    available_pairs.append({"model_name": model_name, "model_config": os.path.basename(model_dict["Name"])})
+        return available_pairs
+
     def run(self):
         # Core function of your process
         # Call begin_task_run for initialization
@@ -114,34 +165,24 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
         # Get parameters :
         param = self.get_param_object()
         if self.model is None or param.update:
-            if param.model_path != "":
-                param.use_custom_model = True
-                if os.path.isfile(param.config_file):
-                    param.custom_cfg = param.config_file
-            if param.model_weight_file != "":
-                if os.path.isfile(param.model_weight_file):
-                    param.use_custom_model = True
-                    param.model_path = param.model_weight_file
-                    if os.path.isfile(param.config_file):
-                        param.custom_cfg = param.config_file
-                else:
-                    param.model_name = param.model_weight_file
+            # Set cache dir in the algorithm folder to simplify deployment
+            old_torch_hub = torch.hub.get_dir()
+            torch.hub.set_dir(os.path.join(os.path.dirname(__file__), "models"))
 
-            if param.use_custom_model:
-                cfg_file = param.custom_cfg
-                ckpt_file = param.model_path
-            else:
-                cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", param.model_name,
-                                        param.model_config)
-                ckpt_file = param.model_url
+            cuda_available = is_available()
+            cfg_file, ckpt_file = self.get_absolute_paths(param)
 
-            self.model = init_model(cfg_file, ckpt_file, device='cuda:0' if param.cuda else 'cpu')
+            self.model = init_model(cfg_file, ckpt_file, device='cuda:0' if param.cuda and cuda_available else 'cpu')
+
             # trick to avoid KeyError "seg_map_path" when loading annotations
             self.model.cfg.test_pipeline = [t for t in self.model.cfg.test_pipeline if "reduce_zero_label" not in t]
             self.classes = self.model.dataset_meta["classes"]
             self.set_names(list(self.classes))
 
             param.update = False
+
+            # Reset torch cache dir for next algorithms in the workflow
+            torch.hub.set_dir(old_torch_hub)
         # Get image from input/output (numpy array):
         srcImage = input.get_image()
 

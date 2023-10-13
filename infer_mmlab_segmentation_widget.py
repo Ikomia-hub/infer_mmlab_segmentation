@@ -143,9 +143,8 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
         self.parameters.cuda = self.check_cuda.isChecked()
         self.parameters.model_config = self.combo_config.currentText()
         self.parameters.model_name = self.combo_model.currentText()
-        self.parameters.model_url = self.available_cfg_ckpt[self.parameters.model_config]['ckpt']
-        self.parameters.model_path = self.browse_custom_weights.path
-        self.parameters.custom_cfg = self.browse_custom_cfg.path
+        self.parameters.model_weight_file = self.browse_custom_weights.path
+        self.parameters.config_file = self.browse_custom_cfg.path
         self.parameters.use_custom_model = self.check_use_custom_model.isChecked()
         self.parameters.update = True
         # Send signal to launch the process
