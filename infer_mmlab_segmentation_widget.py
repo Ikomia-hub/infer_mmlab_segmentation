@@ -95,19 +95,11 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
 
         self.check_cuda = pyqtutils.append_check(self.gridLayout, "Use cuda", self.parameters.cuda and is_available())
 
-        self.check_use_custom_model = pyqtutils.append_check(self.gridLayout, "Use custom model",
-                                                             self.parameters.use_custom_model)
-
         self.browse_custom_cfg = pyqtutils.append_browse_file(self.gridLayout, "Config file (.py)",
                                                               self.parameters.custom_cfg)
 
         self.browse_custom_weights = pyqtutils.append_browse_file(self.gridLayout, "Weight file (.pth)",
                                                                   self.parameters.model_path)
-
-        self.browse_custom_cfg.setEnabled(self.check_use_custom_model.isChecked())
-        self.browse_custom_weights.setEnabled(self.check_use_custom_model.isChecked())
-
-        self.check_use_custom_model.stateChanged.connect(self.on_use_custom_model)
 
         # PyQt -> Qt wrapping
         layout_ptr = qtconversion.PyQtToQt(self.gridLayout)
@@ -131,9 +123,6 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
                 self.combo_config.addItem(experiment_name)
             self.combo_config.setCurrentText(list(self.available_cfg_ckpt.keys())[0])
 
-    def on_use_custom_model(self, b):
-        self.browse_custom_cfg.setEnabled(self.check_use_custom_model.isChecked())
-        self.browse_custom_weights.setEnabled(self.check_use_custom_model.isChecked())
 
     def on_apply(self):
         # Apply button clicked slot
@@ -145,7 +134,6 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
         self.parameters.model_name = self.combo_model.currentText()
         self.parameters.model_weight_file = self.browse_custom_weights.path
         self.parameters.config_file = self.browse_custom_cfg.path
-        self.parameters.use_custom_model = self.check_use_custom_model.isChecked()
         self.parameters.update = True
         # Send signal to launch the process
         self.emit_apply(self.parameters)

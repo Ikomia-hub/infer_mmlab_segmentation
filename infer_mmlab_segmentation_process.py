@@ -45,7 +45,6 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         self.model_config = "maskformer_r50-d32_8xb2-160k_ade20k-512x512"
         self.update = False
         self.cuda = is_available()
-        self.use_custom_model = False
         self.custom_cfg = ""
         self.model_path = ""
 
@@ -57,7 +56,6 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         self.model_name = param_map["model_name"]
         self.model_config = param_map["model_config"]
         self.cuda = utils.strtobool(param_map["cuda"])
-        self.use_custom_model = strtobool(param_map["use_custom_model"])
         self.custom_cfg = param_map["custom_cfg"]
         self.model_path = param_map["model_path"]
 
@@ -70,7 +68,6 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
                 "model_name": self.model_name,
                 "model_config": self.model_config,
                 "cuda": str(self.cuda),
-                "use_custom_model": str(self.use_custom_model),
                 "custom_cfg": self.custom_cfg,
                 "model_path": self.model_path,
                 }
