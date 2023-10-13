@@ -91,7 +91,9 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
 
         self.combo_model.setCurrentText(self.parameters.model_name)
 
-        self.combo_config.setCurrentText(self.parameters.model_config)
+        self.on_model_changed("")
+
+        self.combo_config.setCurrentText(self.parameters.model_config +".py" if not self.parameters.model_config.endswith(".py") else "")
 
         self.check_cuda = pyqtutils.append_check(self.gridLayout, "Use cuda", self.parameters.cuda and is_available())
 
@@ -109,19 +111,16 @@ class InferMmlabSegmentationWidget(core.CWorkflowTaskWidget):
 
     def on_model_changed(self, s):
         self.combo_config.clear()
-        if s not in self.available_models:
-            return
         model = self.combo_model.currentText()
         yaml_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", model, "metafile.yaml")
         if os.path.isfile(yaml_file):
             with open(yaml_file, "r") as f:
                 models_list = yaml.load(f, Loader=yaml.FullLoader)['Models']
-
-            self.available_cfg_ckpt = {model_dict["Name"]: {'cfg': model_dict["Config"], 'ckpt': model_dict["Weights"]} for
-                                       model_dict in models_list}
-            for experiment_name in self.available_cfg_ckpt.keys():
-                self.combo_config.addItem(experiment_name)
-            self.combo_config.setCurrentText(list(self.available_cfg_ckpt.keys())[0])
+            available_cfg = [model_dict["Name"] for
+                             model_dict in models_list
+                             if "Weights" in model_dict]
+            self.combo_config.addItems(available_cfg)
+            self.combo_config.setCurrentText(available_cfg[0])
 
 
     def on_apply(self):
