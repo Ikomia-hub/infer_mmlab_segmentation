@@ -15,18 +15,17 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import copy
+import os
+import yaml
+
+import torch
+from torch.cuda import is_available
 
 from ikomia import core, dataprocess, utils
-from ikomia.utils import strtobool
-import copy
-# Your imports below
+
 from mmseg.apis import init_model, inference_model
 from mmseg.utils import register_all_modules
-from torch.cuda import is_available
-import torch
-import os
-import numpy as np
-import yaml
 
 
 # --------------------
@@ -38,7 +37,6 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
     def __init__(self):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
-        # Example : self.windowSize = 25
         self.model_weight_file = ""
         self.config_file = ""
         self.model_name = "maskformer"
@@ -76,7 +74,7 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
 
 # --------------------
 # - Class which implements the process
-# - Inhesegformer_mit-b0_8xb2-160k_ade20k-512x512.pyrits PyCore.CWorkflowTask or derived from Ikomia API
+# - PyCore.CWorkflowTask or derived from Ikomia API
 # --------------------
 class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
 
@@ -86,6 +84,7 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
         register_all_modules()
         self.model = None
         self.classes = None
+
         # Create parameters class
         if param is None:
             self.set_param_object(InferMmlabSegmentationParam())
@@ -96,7 +95,6 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
         # Function returning the number of progress steps for this process
         # This is handled by the main progress bar of Ikomia application
         return 1
-
 
     @staticmethod
     def get_absolute_paths(param):
@@ -113,6 +111,7 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
                 available_cfg_ckpt = {model_dict["Name"]: {'cfg': model_dict["Config"],
                                                            'ckpt': model_dict["Weights"]}
                                       for model_dict in models_list}
+
                 if param.model_config in available_cfg_ckpt:
                     cfg_file = available_cfg_ckpt[param.model_config]['cfg']
                     ckpt_file = available_cfg_ckpt[param.model_config]['ckpt']
@@ -128,6 +127,7 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
                 cfg_file = param.model_config
             else:
                 cfg_file = param.config_file
+
             ckpt_file = param.model_weight_file
             return cfg_file, ckpt_file
 
@@ -135,56 +135,71 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
     def get_model_zoo():
         configs_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
         available_pairs = []
+
         for model_name in os.listdir(configs_folder):
             if model_name.startswith('_'):
                 continue
+
             yaml_file = os.path.join(configs_folder, model_name, "metafile.yaml")
             if os.path.isfile(yaml_file):
                 with open(yaml_file, "r") as f:
                     models_list = yaml.load(f, Loader=yaml.FullLoader)
                     if 'Models' in models_list:
                         models_list = models_list['Models']
+
                     if not isinstance(models_list, list):
                         continue
+
                 for model_dict in models_list:
-                    available_pairs.append({"model_name": model_name, "model_config": os.path.basename(model_dict["Name"])})
+                    available_pairs.append({
+                        "model_name": model_name,
+                        "model_config": os.path.basename(model_dict["Name"])
+                    })
+
         return available_pairs
+
+    def _load_model(self):
+        param = self.get_param_object()
+        # Set cache dir in the algorithm folder to simplify deployment
+        old_torch_hub = torch.hub.get_dir()
+        torch.hub.set_dir(os.path.join(os.path.dirname(__file__), "models"))
+
+        cuda_available = is_available()
+        cfg_file, ckpt_file = self.get_absolute_paths(param)
+
+        self.model = init_model(cfg_file, ckpt_file, device='cuda:0' if param.cuda and cuda_available else 'cpu')
+
+        # trick to avoid KeyError "seg_map_path" when loading annotations
+        self.model.cfg.test_pipeline = [t for t in self.model.cfg.test_pipeline if "reduce_zero_label" not in t]
+        self.classes = self.model.dataset_meta["classes"]
+        self.set_names(list(self.classes))
+
+        param.update = False
+
+        # Reset torch cache dir for next algorithms in the workflow
+        torch.hub.set_dir(old_torch_hub)
+
+    def init_long_process(self):
+        self._load_model()
+        super().init_long_process()
 
     def run(self):
         # Core function of your process
         # Call begin_task_run for initialization
         self.begin_task_run()
-
-        # Examples :
         # Get input :
-        input = self.get_input(0)
+        img_input = self.get_input(0)
 
         # Get parameters :
         param = self.get_param_object()
-        if self.model is None or param.update:
-            # Set cache dir in the algorithm folder to simplify deployment
-            old_torch_hub = torch.hub.get_dir()
-            torch.hub.set_dir(os.path.join(os.path.dirname(__file__), "models"))
+        if param.update:
+            self._load_model()
 
-            cuda_available = is_available()
-            cfg_file, ckpt_file = self.get_absolute_paths(param)
-
-            self.model = init_model(cfg_file, ckpt_file, device='cuda:0' if param.cuda and cuda_available else 'cpu')
-
-            # trick to avoid KeyError "seg_map_path" when loading annotations
-            self.model.cfg.test_pipeline = [t for t in self.model.cfg.test_pipeline if "reduce_zero_label" not in t]
-            self.classes = self.model.dataset_meta["classes"]
-            self.set_names(list(self.classes))
-
-            param.update = False
-
-            # Reset torch cache dir for next algorithms in the workflow
-            torch.hub.set_dir(old_torch_hub)
         # Get image from input/output (numpy array):
-        srcImage = input.get_image()
+        src_image = img_input.get_image()
 
-        if srcImage is not None:
-            result = inference_model(self.model, srcImage).to_dict()
+        if src_image is not None:
+            result = inference_model(self.model, src_image).to_dict()
             pred_sem_seg = result["pred_sem_seg"]["data"].detach().cpu().squeeze().numpy()
             self.set_mask(pred_sem_seg.astype("uint8"))
 
@@ -209,7 +224,10 @@ class InferMmlabSegmentationFactory(dataprocess.CTaskFactory):
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
         self.info.icon_path = "icons/mmlab.png"
-        self.info.version = "2.0.4"
+        self.info.version = "2.1.0"
+        self.info.max_python_version = "3.9"
+        self.info.max_python_version = "3.11"
+        self.info.min_ikomia_version = "0.15.0"
         # self.info.icon_path = "your path to a specific icon"
         self.info.authors = "MMSegmentation Contributors"
         self.info.article = "{MMSegmentation}: OpenMMLab Semantic Segmentation Toolbox and Benchmark"
@@ -225,6 +243,10 @@ class InferMmlabSegmentationFactory(dataprocess.CTaskFactory):
         self.info.keywords = "mmlab, segmentation"
         self.info.algo_type = core.AlgoType.INFER
         self.info.algo_tasks = "SEMANTIC_SEGMENTATION,PANOPTIC_SEGMENTATION"
+        self.info.hardware_config.min_cpu = 4
+        self.info.hardware_config.min_ram = 16
+        self.info.hardware_config.gpu_required = False
+        self.info.hardware_config.min_vram = 8
 
     def create(self, param=None):
         # Create process object
