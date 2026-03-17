@@ -49,7 +49,7 @@ wf = Workflow()
 segmentor = wf.add_task(name="infer_mmlab_segmentation", auto_connect=True)
 
 # Run the workflow on image
-wf.run_on(url="https://production-media.paperswithcode.com/datasets/Foggy_Cityscapes-0000003414-fb7dc023.jpg")
+wf.run_on(url="https://raw.githubusercontent.com/Ikomia-hub/infer_mmlab_segmentation/main/icons/input.jpg")
 
 # Get and display results
 image_output = segmentor.get_output(0)
@@ -85,7 +85,7 @@ segmentor.set_parameters({
     })
 
 # Run the workflow on image
-wf.run_on(url="https://production-media.paperswithcode.com/datasets/Foggy_Cityscapes-0000003414-fb7dc023.jpg")
+wf.run_on(url="https://raw.githubusercontent.com/Ikomia-hub/infer_mmlab_segmentation/main/icons/input.jpg")
 ```
 - **model_name** (str, default="maskformer"): model name. 
 - **model_config** (str, default="maskformer_r50-d32_8xb2-160k_ade20k-512x512"): name of the model configuration file.
@@ -122,7 +122,7 @@ wf = Workflow()
 algo = wf.add_task(name="infer_mmlab_segmentation", auto_connect=True)
 
 # Run on your image  
-wf.run_on(url="https://production-media.paperswithcode.com/datasets/Foggy_Cityscapes-0000003414-fb7dc023.jpg")
+wf.run_on(url="https://raw.githubusercontent.com/Ikomia-hub/infer_mmlab_segmentation/main/icons/input.jpg")
 
 # Iterate over outputs
 for output in algo.get_outputs():

@@ -1,31 +1,16 @@
-# Copyright (C) 2021 Ikomia SAS
-# Contact: https://www.ikomia.com
-#
-# This file is part of the IkomiaStudio software.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import os
+import yaml
+
+# PyQt GUI framework
+from PyQt6.QtWidgets import *
+from PyQt6 import QtCore
+
+from torch.cuda import is_available
 
 from ikomia import core, dataprocess
 from ikomia.utils import pyqtutils, qtconversion
-from infer_mmlab_segmentation.infer_mmlab_segmentation_process import InferMmlabSegmentationParam
 
-# PyQt GUI framework
-from PyQt5.QtWidgets import *
-from torch.cuda import is_available
-import os
-import yaml
-from PyQt5 import QtCore
+from infer_mmlab_segmentation.infer_mmlab_segmentation_process import InferMmlabSegmentationParam
 
 
 def completion(word_list, widget, i=True):
@@ -33,9 +18,10 @@ def completion(word_list, widget, i=True):
     word_set = set(word_list)
     completer = QCompleter(word_set)
     if i:
-        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        completer.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
     else:
-        completer.setCaseSensitivity(QtCore.Qt.CaseSensitive)
+        completer.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseSensitive)
+
     completer.setFilterMode(QtCore.Qt.MatchFlag.MatchContains)
     widget.setCompleter(completer)
 
