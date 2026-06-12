@@ -216,6 +216,7 @@ class InferMmlabSegmentationFactory(dataprocess.CTaskFactory):
         self.info.path = "Plugins/Python/Segmentation"
         self.info.icon_path = "icons/mmlab.png"
         self.info.version = "3.0.0"
+        self.info.min_python_version = "3.10"
         self.info.min_ikomia_version = "0.16.0"
         # self.info.icon_path = "your path to a specific icon"
         self.info.authors = "MMSegmentation Contributors"
