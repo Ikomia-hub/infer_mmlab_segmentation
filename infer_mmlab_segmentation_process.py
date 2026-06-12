@@ -44,14 +44,14 @@ class InferMmlabSegmentationParam(core.CWorkflowTaskParam):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
         param_map = {
-                "model_weight_file": self.model_weight_file,
-                "config_file": self.config_file,
-                "model_name": self.model_name,
-                "model_config": self.model_config,
-                "cuda": str(self.cuda),
-                "custom_cfg": self.custom_cfg,
-                "model_path": self.model_path,
-                }
+            "model_weight_file": self.model_weight_file,
+            "config_file": self.config_file,
+            "model_name": self.model_name,
+            "model_config": self.model_config,
+            "cuda": str(self.cuda),
+            "custom_cfg": self.custom_cfg,
+            "model_path": self.model_path,
+        }
         return param_map
 
 
@@ -89,7 +89,8 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
                 param.model_config = param.model_config[:-3]
             if os.path.isfile(yaml_file):
                 with open(yaml_file, "r") as f:
-                    models_list = yaml.load(f, Loader=yaml.FullLoader)['Models']
+                    models_list = yaml.load(
+                        f, Loader=yaml.FullLoader)['Models']
 
                 available_cfg_ckpt = {model_dict["Name"]: {'cfg': model_dict["Config"],
                                                            'ckpt': model_dict["Weights"]}
@@ -98,13 +99,15 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
                 if param.model_config in available_cfg_ckpt:
                     cfg_file = available_cfg_ckpt[param.model_config]['cfg']
                     ckpt_file = available_cfg_ckpt[param.model_config]['ckpt']
-                    cfg_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), cfg_file)
+                    cfg_file = os.path.join(os.path.dirname(
+                        os.path.abspath(__file__)), cfg_file)
                     return cfg_file, ckpt_file
                 else:
                     raise Exception(
                         f"{param.model_config} does not exist for {param.model_name}. Available configs for are {', '.join(list(available_cfg_ckpt.keys()))}")
             else:
-                raise Exception(f"Model name {param.model_name} does not exist.")
+                raise Exception(
+                    f"Model name {param.model_name} does not exist.")
         else:
             if os.path.isfile(param.model_config):
                 cfg_file = param.model_config
@@ -116,14 +119,16 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
 
     @staticmethod
     def get_model_zoo():
-        configs_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
+        configs_folder = os.path.join(os.path.dirname(
+            os.path.abspath(__file__)), "configs")
         available_pairs = []
 
         for model_name in os.listdir(configs_folder):
             if model_name.startswith('_'):
                 continue
 
-            yaml_file = os.path.join(configs_folder, model_name, "metafile.yaml")
+            yaml_file = os.path.join(
+                configs_folder, model_name, "metafile.yaml")
             if os.path.isfile(yaml_file):
                 with open(yaml_file, "r") as f:
                     models_list = yaml.load(f, Loader=yaml.FullLoader)
@@ -150,10 +155,12 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
         cuda_available = is_available()
         cfg_file, ckpt_file = self.get_absolute_paths(param)
 
-        self.model = init_model(cfg_file, ckpt_file, device='cuda:0' if param.cuda and cuda_available else 'cpu')
+        self.model = init_model(
+            cfg_file, ckpt_file, device='cuda:0' if param.cuda and cuda_available else 'cpu')
 
         # trick to avoid KeyError "seg_map_path" when loading annotations
-        self.model.cfg.test_pipeline = [t for t in self.model.cfg.test_pipeline if "reduce_zero_label" not in t]
+        self.model.cfg.test_pipeline = [
+            t for t in self.model.cfg.test_pipeline if "reduce_zero_label" not in t]
         self.classes = self.model.dataset_meta["classes"]
         self.set_names(list(self.classes))
 
@@ -183,7 +190,8 @@ class InferMmlabSegmentation(dataprocess.CSemanticSegmentationTask):
 
         if src_image is not None:
             result = inference_model(self.model, src_image).to_dict()
-            pred_sem_seg = result["pred_sem_seg"]["data"].detach().cpu().squeeze().numpy()
+            pred_sem_seg = result["pred_sem_seg"]["data"].detach(
+            ).cpu().squeeze().numpy()
             self.set_mask(pred_sem_seg.astype("uint8"))
 
         # Step progress bar:
@@ -207,9 +215,7 @@ class InferMmlabSegmentationFactory(dataprocess.CTaskFactory):
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
         self.info.icon_path = "icons/mmlab.png"
-        self.info.version = "2.2.0"
-        self.info.max_python_version = "3.10"
-        self.info.max_python_version = "3.11"
+        self.info.version = "3.0.0"
         self.info.min_ikomia_version = "0.16.0"
         # self.info.icon_path = "your path to a specific icon"
         self.info.authors = "MMSegmentation Contributors"
@@ -221,7 +227,7 @@ class InferMmlabSegmentationFactory(dataprocess.CTaskFactory):
         self.info.documentation_link = "https://mmsegmentation.readthedocs.io/en/latest/"
         # Code source repository
         self.info.repository = "https://github.com/Ikomia-hub/infer_mmlab_segmentation"
-        self.info.original_repository = "https://github.com/open-mmlab/mmsegmentation"
+        self.info.original_repository = "https://github.com/Ikomia-dev/mmsegmentation"
         # Keywords used for search
         self.info.keywords = "mmlab, segmentation"
         self.info.algo_type = core.AlgoType.INFER
